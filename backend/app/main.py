@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.cards import router as cards_router
+from app.api.generate import router as generate_router
 from app.models.card import Card  # 导入模型，触发 create_all 建表
 
 # 创建 FastAPI 实例
@@ -17,6 +18,7 @@ app.add_middleware(
 
 # 注册路由：把 cards.py 中定义的接口挂载到 app 上
 app.include_router(cards_router)
+app.include_router(generate_router)
 
 
 # 根路径测试接口

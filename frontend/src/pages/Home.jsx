@@ -1,43 +1,21 @@
 import { useState } from 'react'
 import Button from '../components/Button'
+import request from '../api/request'
 
 /**
  * Home - 首页
  *
  * 功能：
  * - 用户输入学习主题
- * - 点击按钮，调用 AI 生成学习卡片
- * - 显示生成结果（卡片预览）
+ * - 调用 AI 生成学习卡片（POST /api/generate/cards）
+ * - 预览生成结果
+ * - 保存到数据库（POST /api/generate/save）
  *
  * 知识点：
- * - 受控组件：input 的值由 state 控制
- * - loading 状态：请求中禁用按钮，防止重复提交
- * - 条件渲染：根据 loading / 结果 状态显示不同内容
- *
- * 当前模拟 AI 返回数据，阶段 8 接入真实 AI API
+ * - async/await: 等待 AI 返回（AI 响应较慢，需要 loading 状态）
+ * - 错误处理: try/catch 捕获 API 异常
+ * - 条件渲染: 根据 loading / error / 结果 状态显示不同内容
  */
-
-// 模拟 AI 返回的卡片数据
-const mockAICards = [
-  {
-    question: 'HTTP 的全称是什么？',
-    answer: 'HyperText Transfer Protocol（超文本传输协议）',
-    tag: 'HTTP',
-    difficulty: 'easy',
-  },
-  {
-    question: 'HTTP 默认使用哪个端口？',
-    answer: '80 端口（HTTPS 使用 443 端口）',
-    tag: 'HTTP',
-    difficulty: 'easy',
-  },
-  {
-    question: 'HTTP 和 HTTPS 的主要区别是什么？',
-    answer: 'HTTPS 在 HTTP 基础上增加了 SSL/TLS 加密，数据传输更安全',
-    tag: 'HTTP,安全',
-    difficulty: 'medium',
-  },
-]
 
 export default function Home() {
   // topic: 用户输入的学习主题
@@ -47,22 +25,52 @@ export default function Home() {
   // generatedCards: AI 生成的卡片结果
   const [generatedCards, setGeneratedCards] = useState([])
 
+  // error: 错误信息
+  const [error, setError] = useState('')
+  // saving: 是否正在保存
+  const [saving, setSaving] = useState(false)
+
   /**
    * 处理生成按钮点击
-   * 后续替换为：调用 POST /api/ai/generate
+   * 调用 POST /api/generate/cards
    */
   const handleGenerate = async () => {
     if (!topic.trim()) return
 
     setLoading(true)
     setGeneratedCards([])
+    setError('')
 
-    // 模拟 API 请求延迟（1.5秒）
-    // 后续替换为真实 API 调用
-    await new Promise(resolve => setTimeout(resolve, 1500))
+    try {
+      const res = await request.post('/api/generate/cards', {
+        topic: topic.trim(),
+      })
+      setGeneratedCards(res.data.cards)
+    } catch (err) {
+      setError(err.response?.data?.detail || '生成失败，请重试')
+    } finally {
+      setLoading(false)
+    }
+  }
 
-    setGeneratedCards(mockAICards)
-    setLoading(false)
+  /**
+   * 保存 AI 生成的卡片到数据库
+   * 调用 POST /api/generate/save
+   */
+  const handleSave = async () => {
+    if (generatedCards.length === 0) return
+
+    setSaving(true)
+    try {
+      await request.post('/api/generate/save', generatedCards)
+      alert('保存成功！')
+      setGeneratedCards([])
+      setTopic('')
+    } catch (err) {
+      alert('保存失败: ' + (err.response?.data?.detail || '未知错误'))
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -104,11 +112,18 @@ export default function Home() {
         </p>
       </div>
 
+      {/* 错误提示 */}
+      {error && (
+        <div className="max-w-xl mx-auto mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-center">
+          {error}
+        </div>
+      )}
+
       {/* 加载状态 */}
       {loading && (
         <div className="text-center py-8">
           <div className="inline-block w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-3" />
-          <p className="text-gray-500">AI 正在生成卡片...</p>
+          <p className="text-gray-500">AI 正在生成卡片，请稍候...</p>
         </div>
       )}
 
@@ -142,10 +157,14 @@ export default function Home() {
             ))}
           </div>
 
-          {/* 保存到卡片库按钮（后续实现） */}
+          {/* 保存到卡片库按钮 */}
           <div className="text-center mt-6">
-            <Button variant="success">
-              保存全部到卡片库
+            <Button
+              variant="success"
+              onClick={handleSave}
+              disabled={saving}
+            >
+              {saving ? '保存中...' : '保存全部到卡片库'}
             </Button>
           </div>
         </div>
