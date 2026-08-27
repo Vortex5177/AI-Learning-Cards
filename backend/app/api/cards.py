@@ -1,6 +1,8 @@
 from fastapi import APIRouter, HTTPException
 from app.schemas.card import CardCreate, CardResponse
 from app.services import card_service
+from app.schemas.review import ReviewRequest
+from app.services import review_service
 
 # 创建路由器
 # prefix="/api/cards" → 下面所有接口自动加上 /api/cards 前缀
@@ -50,3 +52,19 @@ def delete_card(card_id: int):
     if not success:
         raise HTTPException(status_code=404, detail="卡片不存在")
     return {"message": "删除成功"}
+
+
+@router.post("/{card_id}/review")
+def review_card(card_id: int, review: ReviewRequest):
+    # 1. 查找卡片，找不到返回 404
+    card = card_service.get_card_by_id(card_id)
+    if card is None:
+        raise HTTPException(status_code=404, detail="卡片不存在")
+    
+    # 2. 调用算法计算
+    review_data = review_service.calculate_review(card, review.result)
+    
+    # 3. 更新数据库
+    updated_card = card_service.update_card_review(card_id, review_data)
+    
+    return updated_card

@@ -88,3 +88,26 @@ def delete_card(card_id: int) -> bool:
     finally:
         db.close()
     return False
+
+
+def update_card_review(card_id: int, review_data: dict):
+    """把算法计算的结果更新到数据库
+
+    参数：
+    - card_id: 卡片 ID
+    - review_data: 算法返回的 dict { interval, ease_factor, next_review, review_count }
+    """
+    db = SessionLocal()
+    try:
+        card = db.query(Card).filter(Card.id == card_id).first()
+        if card:
+            card.interval = review_data["interval"]
+            card.ease_factor = review_data["ease_factor"]
+            card.next_review = review_data["next_review"]
+            card.review_count = review_data["review_count"]
+            db.commit()
+            db.refresh(card)
+            return card
+    finally:
+        db.close()
+    return None
