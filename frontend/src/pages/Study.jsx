@@ -1,57 +1,60 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Card from '../components/Card'
+import request from '../api/request'
 
 /**
  * Study - 学习模式页面
  *
  * 流程：
- * 1. 从待复习卡片中取出当前卡片
- * 2. 用户看问题 → 点击翻转看答案
- * 3. 选择评分（忘记/困难/一般/简单）
- * 4. 进入下一张卡片
- * 5. 全部复习完显示完成页面
+ * 1. 页面加载时获取所有卡片，过滤出待复习的
+ * 2. 从待复习卡片中取出当前卡片
+ * 3. 用户看问题 → 点击翻转看答案
+ * 4. 选择评分（忘记/困难/一般/简单）
+ * 5. 进入下一张卡片
+ * 6. 全部复习完显示完成页面
  *
  * 知识点：
- * - useState 管理当前卡片索引
- * - 条件渲染：学习中 vs 学习完成
- * - 回调函数：Card 组件通过 onRate 把评分传回来
- *
- * 当前使用模拟数据，后续由 /api/cards/due 接口返回
+ * - useEffect: 页面加载时获取数据
+ * - async/await: 异步等待 API 响应
+ * - filter(): 过滤出待复习的卡片
  */
 
-// 模拟待复习卡片
-const initialDueCards = [
-  {
-    id: 1,
-    question: 'HTTP 属于哪一层协议？',
-    answer: '应用层',
-    tag: 'HTTP',
-    difficulty: 'easy',
-  },
-  {
-    id: 2,
-    question: 'TCP 三次握手的目的是什么？',
-    answer: '确认双方的发送和接收能力，同步序列号',
-    tag: 'TCP',
-    difficulty: 'medium',
-  },
-  {
-    id: 3,
-    question: 'React 中 useEffect 的第二个参数是什么作用？',
-    answer: '依赖数组，指定 effect 仅在哪些值变化时重新执行',
-    tag: 'React',
-    difficulty: 'medium',
-  },
-]
-
 export default function Study() {
+  // dueCards: 待复习的卡片列表
+  const [dueCards, setDueCards] = useState([])
   // currentIndex: 当前正在复习第几张卡片
   const [currentIndex, setCurrentIndex] = useState(0)
   // reviewCount: 已复习数量（统计用）
   const [reviewCount, setReviewCount] = useState(0)
 
-  const totalCards = initialDueCards.length
-  const currentCard = initialDueCards[currentIndex]
+  /**
+   * 页面加载时获取待复习卡片
+   * 逻辑：获取所有卡片，过滤出 next_review 为空或早于当前时间的
+   */
+  useEffect(() => {
+    fetchDueCards()
+  }, [])
+
+  async function fetchDueCards() {
+    try {
+      const res = await request.get('/api/cards/')
+      const allCards = res.data
+      const now = new Date()
+
+      // 过滤待复习卡片：
+      // 1. next_review 为空（从未复习过）
+      // 2. next_review 早于当前时间（到了复习时间）
+      const due = allCards.filter(card =>
+        !card.next_review || new Date(card.next_review) < now
+      )
+      setDueCards(due)
+    } catch (error) {
+      console.error('获取卡片失败:', error)
+    }
+  }
+
+  const totalCards = dueCards.length
+  const currentCard = dueCards[currentIndex]
 
   /**
    * 处理评分
@@ -66,11 +69,21 @@ export default function Study() {
   }
 
   /**
-   * 重新开始学习（重置状态）
+   * 重新开始学习（重新获取待复习卡片）
    */
   const handleRestart = () => {
     setCurrentIndex(0)
     setReviewCount(0)
+    fetchDueCards()
+  }
+
+  // 加载中
+  if (dueCards.length === 0 && currentIndex === 0) {
+    return (
+      <div className="text-center py-16">
+        <p className="text-gray-500">加载中...</p>
+      </div>
+    )
   }
 
   // 全部复习完成
@@ -113,7 +126,9 @@ export default function Study() {
       </div>
 
       {/* 卡片展示 */}
+      {/* key={currentCard.id} 确保切换卡片时重新创建组件，重置翻转状态 */}
       <Card
+        key={currentCard.id}
         question={currentCard.question}
         answer={currentCard.answer}
         tag={currentCard.tag}

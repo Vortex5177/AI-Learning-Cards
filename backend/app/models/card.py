@@ -23,7 +23,7 @@ class Card(Base):
     question = Column(String, nullable=False)
     answer = Column(String, nullable=False)
 
-    # 可选字段
+    # 可选字段，默认值为空字符串或 medium（难度中等）
     tag = Column(String, default="")
     difficulty = Column(String, default="medium")
 

@@ -1,59 +1,53 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Button from '../components/Button'
+import request from '../api/request'
 
 /**
  * Manage - 卡片管理页面
  *
  * 功能：
- * - 查看卡片列表
- * - 手动创建新卡片
- * - 编辑已有卡片
- * - 删除卡片
+ * - 查看卡片列表（从后端获取）
+ * - 手动创建新卡片（POST /api/cards/）
+ * - 编辑已有卡片（PUT /api/cards/{id}）
+ * - 删除卡片（DELETE /api/cards/{id}）
  *
  * 知识点：
- * - useState 管理列表数据和表单数据
- * - 列表渲染：map() 遍历数组生成组件
- * - 条件渲染：编辑模式 vs 创建模式
- * - 不可变更新：不直接修改 state，而是创建新数组
- *
- * 当前使用模拟数据（mockCards），后续连接后端 API 替换
+ * - useEffect: 组件挂载时执行 API 请求
+ * - async/await: 异步等待后端响应
+ * - request.get/post/put/delete: Axios 封装的 HTTP 方法
  */
-
-// 模拟数据（后续由 API 返回）
-const initialCards = [
-  {
-    id: 1,
-    question: 'HTTP 属于哪一层协议？',
-    answer: '应用层',
-    tag: 'HTTP,网络',
-    difficulty: 'easy',
-  },
-  {
-    id: 2,
-    question: 'TCP 三次握手的目的是什么？',
-    answer: '确认双方的发送和接收能力，同步序列号',
-    tag: 'TCP,网络',
-    difficulty: 'medium',
-  },
-  {
-    id: 3,
-    question: 'React 中 useState 的作用是什么？',
-    answer: '在函数组件中声明状态变量，状态变化时触发重新渲染',
-    tag: 'React,前端',
-    difficulty: 'easy',
-  },
-]
 
 // 空表单模板
 const emptyForm = { question: '', answer: '', tag: '', difficulty: 'medium' }
 
 export default function Manage() {
-  // cards: 卡片列表
-  const [cards, setCards] = useState(initialCards)
+  // cards: 卡片列表（初始为空，由 API 填充）
+  const [cards, setCards] = useState([])
   // form: 当前表单数据
   const [form, setForm] = useState(emptyForm)
   // editingId: 正在编辑的卡片 ID，null 表示创建模式
   const [editingId, setEditingId] = useState(null)
+
+  /**
+   * 页面加载时获取所有卡片
+   * useEffect 第二个参数 [] 表示只在组件挂载时执行一次
+   */
+  useEffect(() => {
+    fetchCards()
+  }, [])
+
+  /**
+   * 从后端获取卡片列表
+   * GET /api/cards/
+   */
+  async function fetchCards() {
+    try {
+      const res = await request.get('/api/cards/')
+      setCards(res.data)
+    } catch (error) {
+      console.error('获取卡片失败:', error)
+    }
+  }
 
   /**
    * 处理表单输入变化
@@ -65,27 +59,31 @@ export default function Manage() {
 
   /**
    * 提交表单（创建或更新）
-   * - editingId 为 null → 创建新卡片
-   * - editingId 有值 → 更新已有卡片
+   * - editingId 为 null → POST 创建新卡片
+   * - editingId 有值 → PUT 更新已有卡片
    */
-  const handleSubmit = (e) => {
+  async function handleSubmit(e) {
     e.preventDefault()
     if (!form.question || !form.answer) return
 
-    if (editingId) {
-      // 更新：遍历列表，找到目标，替换数据
-      setCards(cards.map(card =>
-        card.id === editingId ? { ...card, ...form } : card
-      ))
-    } else {
-      // 创建：生成新卡片，追加到列表
-      const newCard = { ...form, id: Date.now() }
-      setCards([...cards, newCard])
-    }
+    try {
+      if (editingId) {
+        // 更新：PUT /api/cards/{id}
+        await request.put(`/api/cards/${editingId}`, form)
+      } else {
+        // 创建：POST /api/cards/
+        await request.post('/api/cards/', form)
+      }
 
-    // 重置表单
-    setForm(emptyForm)
-    setEditingId(null)
+      // 操作成功后，重新获取列表
+      await fetchCards()
+
+      // 重置表单
+      setForm(emptyForm)
+      setEditingId(null)
+    } catch (error) {
+      console.error('操作失败:', error)
+    }
   }
 
   /**
@@ -102,10 +100,19 @@ export default function Manage() {
   }
 
   /**
-   * 删除卡片：过滤掉目标 ID
+   * 删除卡片
+   * DELETE /api/cards/{id}
    */
-  const handleDelete = (id) => {
-    setCards(cards.filter(card => card.id !== id))
+  async function handleDelete(id) {
+    if (!confirm('确定删除这张卡片吗？')) return
+
+    try {
+      await request.delete(`/api/cards/${id}`)
+      // 删除成功后，重新获取列表
+      await fetchCards()
+    } catch (error) {
+      console.error('删除失败:', error)
+    }
   }
 
   /**
