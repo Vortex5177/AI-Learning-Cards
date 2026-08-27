@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.cards import router as cards_router
+from app.models.card import Card  # 导入模型，触发 create_all 建表
 
 # 创建 FastAPI 实例
 app = FastAPI(title="AI 学习卡片 API", version="0.1.0")
