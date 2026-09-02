@@ -2,6 +2,9 @@
 
 基于 AI 大模型自动生成学习卡片，结合间隔重复算法（SM-2）智能安排复习计划。
 
+### 项目演示：
+https://www.bilibili.com/video/BV1aHtU68E18/?spm_id_from=333.1387.homepage.video_card.click&vd_source=af6b06ed78f624e8d6ee51d604d07478
+
 ## 功能特性
 
 - **AI 生成卡片**：输入学习主题，AI 自动生成学习卡片(具体问题少，泛主题多)
