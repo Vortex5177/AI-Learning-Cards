@@ -4,7 +4,7 @@
 
 ## 功能特性
 
-- **AI 生成卡片**：输入学习主题，AI 自动生成 5-8 张学习卡片
+- **AI 生成卡片**：输入学习主题，AI 自动生成学习卡片(具体问题少，泛主题多)
 - **智能复习**：基于 SM-2 算法，根据记忆程度自动安排复习时间
 - **卡片管理**：支持卡片的增删改查
 - **数据统计**：展示学习进度、掌握程度分布
@@ -38,10 +38,10 @@ python -m venv .venv
 .venv\Scripts\activate  # Windows
 # source .venv/bin/activate  # Linux/Mac
 pip install -r requirements.txt
-uvicorn app.main:app --reload
+uvicorn app.main:app --reload --port 8001
 ```
 
-后端运行在 `http://localhost:8000`
+后端运行在 `http://localhost:8001` （8000 端口留给 AI Code Reviewer 项目，避免端口冲突）
 
 ### 3. 启动前端
 ```bash
@@ -101,7 +101,7 @@ AI_API_KEY=your-api-key-here
 
 ## API 文档
 
-启动后端后访问 `http://localhost:8000/docs` 查看 Swagger 接口文档。
+启动后端后访问 `http://localhost:8001/docs` 查看 Swagger 接口文档。
 
 ### 主要接口
 
