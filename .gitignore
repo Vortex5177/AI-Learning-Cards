@@ -22,3 +22,6 @@ dist/
 
 # Python
 *.egg-info/
+
+# 数据库文件（运行时产生，不提交）
+*.db
